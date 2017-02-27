@@ -11,7 +11,7 @@ DetectRegions::DetectRegions(){
 
 bool DetectRegions::VerifySizes(RotatedRect ROI){
 	// 以下设置车牌默认参数，用于识别矩形区域内是否为目标车牌
-	float error = 0.4;
+	float error = 0.9;
 	// 西班牙车牌宽高比: 520 / 110 = 4.7272
 	float aspect = 4.7272;
 	// 设定区域面积的最小/最大尺寸，不在此范围内的不被视为车牌
@@ -77,14 +77,16 @@ vector<Plate> DetectRegions::segment(Mat input)
 		0,               // 表示在结果存入目标图之前可选的delta值，默认值为0
 		BORDER_DEFAULT); // 边界模式，默认值为BORDER_DEFAULT
 	if (showSteps)
-		imshow("Sobel", sobelImage);
+		cout << "	\n	Sobel's Complished!\n	-----------\n";
+		//imshow("Sobel", sobelImage);
 
 	// 阈值分割得到二值图像，所采用的阈值由Otsu算法得到
 	Mat thresholdImage;
 	// 输入一幅8位图像，自动得到优化的阈值
 	threshold(sobelImage, thresholdImage, 0, 255, CV_THRESH_OTSU + CV_THRESH_BINARY);
 	if (showSteps)
-		imshow("Threshold Image", thresholdImage);
+		cout << "	\n	Threshold's Complished!\n	-----------\n";
+		//imshow("Threshold Image", thresholdImage);
 
 	// 形态学之闭运算
 	// 定义一个结构元素structuringElement，维度为17*3
@@ -92,7 +94,8 @@ vector<Plate> DetectRegions::segment(Mat input)
 	// 使用morphologyEx函数得到包含车牌的区域（但不包含车牌号）
 	morphologyEx(thresholdImage, thresholdImage, CV_MOP_CLOSE, structuringElement);
 	if (showSteps)
-		imshow("Close", thresholdImage);
+		cout << "	\n	Close's Complished!\n	-----------\n";
+		//imshow("Close", thresholdImage);
 
 	// 找到可能的车牌的轮廓
 	vector< vector< Point> > contours;
@@ -118,12 +121,12 @@ vector<Plate> DetectRegions::segment(Mat input)
 	}
 
 	// 在白色的图上画出蓝色的轮廓
-	cv::Mat result;
+	Mat result;
 	input.copyTo(result);
-	cv::drawContours(result,
+	drawContours(result,
 		contours,
 		-1,                    // 所有的轮廓都画出
-		cv::Scalar(255, 0, 0), // 颜色
+		Scalar(255, 0, 0), // 颜色
 		1);                    // 线粗
 
 	// 使用漫水填充算法裁剪车牌获取更清晰的轮廓
@@ -170,7 +173,8 @@ vector<Plate> DetectRegions::segment(Mat input)
 				flags);
 		}
 		if (showSteps)
-			imshow("MASK", mask);
+			cout << "	\n	MASK's Complished!\n	-----------\n"; 
+		//imshow("MASK", mask);
 
 		// 得到裁剪掩码后，检查其有效尺寸
 		// 对于每个掩码的白色像素，先得到其位置
@@ -212,20 +216,27 @@ vector<Plate> DetectRegions::segment(Mat input)
 			resultResized.create(33, 144, CV_8UC3);
 			resize(img_crop, resultResized, resultResized.size(), 0, 0, INTER_CUBIC);
 			// 为了消除光照影响，对裁剪图像使用直方图均衡化处理
+			
 			Mat grayResult;
 			cvtColor(resultResized, grayResult, CV_BGR2GRAY);
 			blur(grayResult, grayResult, Size(3, 3));
 			grayResult = histeq(grayResult);
+			/*string cropn = format("cropn%d",i);
+			imshow(cropn, grayResult);*/
 			if (saveRegions){
 				stringstream ss(stringstream::in | stringstream::out);
 				ss << "tmp/" << filename << "_" << i << ".jpg";
 				imwrite(ss.str(), grayResult);
 			}
-			output.push_back(Plate(grayResult, minRect.boundingRect()));
+			output.push_back(Plate(grayResult, minRect.boundingRect()));//读取训练数据用**.push_back();
 		}
 	}
-	if (showSteps)
-		imshow("Contours", result);
+	if (showSteps){
+		cout << "Contours' Complished!\n	-----------\n";
+		//imshow("Contours", result);
+		
+	}
+		
 
 	return output;
 }
